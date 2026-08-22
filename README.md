@@ -1,90 +1,46 @@
 # GitHub Search App
 
-A native Android app (Kotlin + Jetpack Compose) that searches GitHub users and shows their profile details. Built to satisfy the sample project brief, **including all three optional requirements**:
+A native Android app (Kotlin + Jetpack Compose) that lets you search for GitHub users and view their profile details.
 
-- ✅ Pagination — loads more results as you scroll (Paging 3)
-- ✅ Local caching — last search results are saved and shown on relaunch (DataStore)
-- ✅ Unit tests — paging source, repository, and view model (JUnit + MockK + Truth)
+## What it does
 
-## How to open the project
-
-1. Install **Android Studio** (Koala or newer recommended).
-2. `File > Open`, select the `GitHubSearchApp` folder (the one containing `settings.gradle.kts`).
-3. Let Gradle sync — it will download the dependencies listed in `app/build.gradle.kts` automatically. You need an internet connection for this step.
-4. Run on an emulator or physical device (min SDK 24 / Android 7.0+).
-
-No API key is required — the GitHub Search and User endpoints work unauthenticated, just at a lower rate limit (60 requests/hour per IP). If you hit `403` errors while testing, see the commented-out `Authorization` header in `RetrofitInstance.kt` and add a personal access token there.
-
-## Project structure
-
-```
-app/src/main/java/com/example/githubsearch/
-├── MainActivity.kt                  # Entry point, wires up repository + nav
-├── data/
-│   ├── api/
-│   │   ├── GitHubApiService.kt      # Retrofit interface (search + user details)
-│   │   └── RetrofitInstance.kt      # Retrofit/OkHttp singleton
-│   ├── model/
-│   │   ├── SearchResponse.kt        # /search/users response + GitHubUser
-│   │   └── GitHubUserDetails.kt     # /users/{username} response
-│   ├── paging/
-│   │   └── GitHubUserPagingSource.kt  # Paging 3 source -> infinite scroll
-│   ├── local/
-│   │   └── SearchCacheManager.kt    # DataStore cache of last query/results
-│   └── repository/
-│       └── GitHubRepository.kt      # Single source of truth for the UI
-└── ui/
-    ├── search/
-    │   ├── SearchScreen.kt          # Search bar + paged list + cached view
-    │   ├── SearchViewModel.kt
-    │   └── SearchViewModelFactory.kt
-    ├── details/
-    │   ├── DetailsScreen.kt         # Profile details screen
-    │   └── DetailsViewModel.kt
-    ├── navigation/
-    │   └── NavGraph.kt              # Compose Navigation: search <-> details
-    └── theme/
-        ├── Theme.kt
-        └── Type.kt
-
-app/src/test/java/com/example/githubsearch/
-├── GitHubUserPagingSourceTest.kt
-├── GitHubRepositoryTest.kt
-└── SearchViewModelTest.kt
-```
+You type a username into a search bar, and the app queries GitHub's Search Users API to show a scrollable list of matching users (avatar + username). Scrolling to the bottom loads more results automatically. Tapping a user opens a details screen with their full profile — name, bio, followers/following, public repos, company, location, etc., pulled from GitHub's User Details API. The last search is saved on the device, so reopening the app shows those results again instead of a blank screen.
 
 ## Architecture
 
-MVVM, roughly:
+The app follows MVVM (Model-View-ViewModel):
 
-`Compose UI` → observes → `ViewModel (StateFlow)` → calls → `Repository` → calls → `Retrofit API` / `DataStore cache`
+**UI (Compose screens)** → observes state from → **ViewModel** → asks for data from → **Repository** → which talks to → **Retrofit (network)** and **DataStore (local cache)**
 
-- **SearchViewModel** exposes a `Flow<PagingData<GitHubUser>>` built from `GitHubUserPagingSource`, which is what powers infinite scroll. It also restores the last cached search on cold start and re-saves results to `SearchCacheManager` whenever a fresh search's first page loads.
-- **DetailsViewModel** fetches full profile info for the tapped user via `GET /users/{username}` and exposes a simple `Loading / Success / Error` state.
-- ViewModels take their dependencies through a small manual factory (`SearchViewModelFactory`, `DetailsViewModelFactory`) rather than a DI framework, to keep the sample easy to read — swap in Hilt/Koin if the app grows.
+The idea is each layer only knows about the layer directly below it. The UI never talks to the network directly; it just reacts to state the ViewModel exposes. The ViewModel never talks to Retrofit or DataStore directly; it goes through the Repository. This separation is what makes the app testable — in tests, we can swap the Repository for a fake one instead of hitting the real GitHub API.
 
-## Running the tests
+## Files, explained
 
-In Android Studio: right-click `app/src/test` → **Run 'Tests in githubsearch'**, or from the command line:
+**`MainActivity.kt`** — the entry point. Creates the Repository (wiring together the network client and the local cache) and sets the screen content to the navigation graph.
 
-```bash
-./gradlew testDebugUnitTest
-```
+### Data layer
 
-## Pushing to GitHub
+- **`data/model/SearchResponse.kt`** — matches the JSON shape returned by the Search Users API. `GitHubUser` holds the small set of fields that endpoint gives you (id, username, avatar, profile URL).
+- **`data/model/GitHubUserDetails.kt`** — matches the JSON from the User Details endpoint, which has much more (bio, followers, company, etc.) — shown on the details screen.
+- **`data/api/GitHubApiService.kt`** — the Retrofit interface describing the two API calls (search users, get user details). Retrofit builds the actual network requests from this automatically.
+- **`data/api/RetrofitInstance.kt`** — sets up one shared Retrofit client used everywhere in the app.
+- **`data/paging/GitHubUserPagingSource.kt`** — powers infinite scroll. Fetches one page of results at a time and tells the UI whether there's a next page to load.
+- **`data/local/SearchCacheManager.kt`** — saves the last search query and its results to the device using DataStore, and reads them back on app launch.
+- **`data/repository/GitHubRepository.kt`** — the single place ViewModels go to for data, whether it's coming from the network or the local cache.
 
-```bash
-cd GitHubSearchApp
-git init
-git add .
-git commit -m "Initial commit: GitHub Search App"
-git branch -M main
-git remote add origin https://github.com/<your-username>/<your-repo>.git
-git push -u origin main
-```
+### UI layer
 
-## Notes / possible extensions
+- **`ui/search/SearchViewModel.kt`** — holds the search bar's state (what's typed, whether a search has run) and exposes the paged list of results. Also triggers saving results to the cache and restoring them on startup.
+- **`ui/search/SearchScreen.kt`** — the search screen itself: text field, search button, and the scrolling list of results.
+- **`ui/details/DetailsViewModel.kt`** — fetches one user's full profile when the details screen opens.
+- **`ui/details/DetailsScreen.kt`** — the profile screen: avatar, bio, stats, and other details.
+- **`ui/navigation/NavGraph.kt`** — defines the two screens and how tapping a user takes you from the search screen to the details screen.
+- **`ui/theme/`** — colors and typography used across the app.
 
-- Add a "Retry" affordance for `refresh` errors on the search list (details screen already has one).
-- Swap manual ViewModel factories for Hilt if the app grows past two screens.
-- Add an in-memory `Coil` disk cache config if you want avatar images to survive offline reopens too (currently only the user list/metadata is cached, not images).
+### Tests (`app/src/test/`)
+
+- **`GitHubUserPagingSourceTest.kt`** — checks that pagination logic works correctly (pages load, next page detection, error handling).
+- **`GitHubRepositoryTest.kt`** — checks the repository correctly passes data between the network/cache and whoever's asking for it.
+- **`SearchViewModelTest.kt`** — checks the search screen's state behaves correctly as you type and search.
+
+All three use fake (mocked) dependencies instead of real network calls, which is the standard way to write unit tests — fast, reliable, and not dependent on GitHub's servers being reachable.
