@@ -19,6 +19,8 @@ import androidx.paging.compose.LazyPagingItems
 import androidx.paging.compose.collectAsLazyPagingItems
 import coil.compose.AsyncImage
 import com.example.githubsearch.data.model.GitHubUser
+import androidx.compose.foundation.background
+import androidx.compose.foundation.shape.RoundedCornerShape
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,8 +42,15 @@ fun SearchScreen(
 
     Scaffold(
         topBar = {
-            TopAppBar(title = { Text("GitHub User Search") })
-        }
+            TopAppBar(
+                title = { Text("GitHub User Search", fontWeight = FontWeight.SemiBold) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    titleContentColor = MaterialTheme.colorScheme.onPrimary
+                )
+            )
+        },
+        containerColor = MaterialTheme.colorScheme.background
     ) { padding ->
         Column(
             modifier = Modifier

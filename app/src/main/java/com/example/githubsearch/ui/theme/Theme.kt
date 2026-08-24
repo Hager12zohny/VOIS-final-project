@@ -12,22 +12,58 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 
+// ---- Blue / Grey palette ----
+val SlateBlue90 = Color(0xFFE8EEF6)
+val SlateBlue80 = Color(0xFFC7D5E6)
+val SteelBlue60 = Color(0xFF5B7EA6)
+val DeepBlue40  = Color(0xFF2C4A6E)
+val DeepBlue30  = Color(0xFF1E3450)
+val Slate20     = Color(0xFF20242B)
+val Slate30     = Color(0xFF2E333C)
+val Slate70     = Color(0xFF9AA5B1)
+val Ash95       = Color(0xFFF5F7FA)
+val AccentTeal  = Color(0xFF3AAFA9)
+
 private val LightColors = lightColorScheme(
-    primary = Color(0xFF24292F), // GitHub-ish dark neutral
-    secondary = Color(0xFF0969DA),
-    tertiary = Color(0xFF2DA44E)
+    primary = DeepBlue40,
+    onPrimary = Color.White,
+    primaryContainer = SlateBlue80,
+    onPrimaryContainer = DeepBlue30,
+    secondary = SteelBlue60,
+    onSecondary = Color.White,
+    tertiary = AccentTeal,
+    background = Ash95,
+    onBackground = Slate20,
+    surface = Color.White,
+    onSurface = Slate20,
+    surfaceVariant = SlateBlue90,
+    onSurfaceVariant = Slate70,
+    outline = SlateBlue80,
+    error = Color(0xFFB3261E)
 )
 
 private val DarkColors = darkColorScheme(
-    primary = Color(0xFFC9D1D9),
-    secondary = Color(0xFF58A6FF),
-    tertiary = Color(0xFF3FB950)
+    primary = SlateBlue80,
+    onPrimary = DeepBlue30,
+    primaryContainer = DeepBlue40,
+    onPrimaryContainer = SlateBlue90,
+    secondary = SteelBlue60,
+    onSecondary = Color.White,
+    tertiary = AccentTeal,
+    background = Slate20,
+    onBackground = SlateBlue90,
+    surface = Slate30,
+    onSurface = SlateBlue90,
+    surfaceVariant = Color(0xFF3A4049),
+    onSurfaceVariant = Slate70,
+    outline = Color(0xFF4A5361),
+    error = Color(0xFFF2B8B5)
 )
 
 @Composable
 fun GitHubSearchAppTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
+    dynamicColor: Boolean = false,
     content: @Composable () -> Unit
 ) {
     val colorScheme = when {
